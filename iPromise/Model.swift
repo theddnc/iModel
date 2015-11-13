@@ -24,7 +24,8 @@ methods will be called on calling ```validate()```. Returning ```(false, "Messag
 those methods will mark a corresponding field as invalid.
 
 When subclassing this class be aware of:
-1. If a property is not marked with ```dynamic``` keyword it will not be observed.
+1. If a property is not marked with ```dynamic``` keyword it will not be observed and
+    hence will not influence object's ```validationState```.
 2. If a property is not provided with it's default value, Swift's reflection engine
     might not work properly and your app will crash.
 
@@ -66,7 +67,7 @@ public class Model: NSObject {
         case Invalid([String: String])
     }
     
-    /// Contains values which will be restored on calling undo()
+    /// Contains values which will be restored on calling ```undo()```
     private var undoDictionary: [String: Any] = [:]
     
     /// Contains validation state of this object.
@@ -159,39 +160,40 @@ public class Model: NSObject {
     }
     
     /**
-    Iterates over properties and runs provided validation methods.
-    
-    **TODO**: consider iterating over validationMethodDictionary instead - might be faster
+    Iterates over provided validation methods and validates properties.
     */
     public func validate() {
         self.resetValidationResult()
         
-        // grab a mirror
-        let mirror = Mirror(reflecting: self)
-        
-        // for every property check if there is a method to validate its value
-        // and if so, run the method and save the result
-        for child in mirror.children {
-            guard
-                let property = child.label,
-                let validationMethod = self.validationMethodDictionary()[property],
-                let value = self.valueForKey(property)
-            else { continue }
-        
-            let (result, message) = validationMethod(value)
+        // iterate over provided validation methods
+        for (propertyName, validationMethod) in self.validationMethodDictionary() {
+            
+            // ensure that property with that name exists and fail silently otherwise
+            guard self.respondsToSelector(Selector(propertyName)) == true else {
+                print("No property with \(propertyName) found. Make sure that this Model is correctly configured")
+                continue
+            }
+            
+            guard let propertyValue = self.valueForKey(propertyName) else { continue }
+            
+            let (result, message) = validationMethod(propertyValue)
             
             if result == false {
                 var errors = self.validationErrors
-                errors[property] = message ?? ""
+                errors[propertyName] = message ?? ""
                 self.validationState = .Invalid(errors)
             }
         }
         
+        // no errors encountered, model seems to be Clean
         if self.validationErrors.count == 0 {
             self.validationState = .Clean
         }
     }
     
+    /**
+    Restores model's property values to last Clean or Empty validation states.
+    */
     public func undo() {
         for (key, value) in self.undoDictionary {
             guard let value = value as? AnyObject else { continue }
@@ -205,9 +207,9 @@ public class Model: NSObject {
     Returns a dictionary of validation methods. Default implementation returns an empty dict.
     
     - returns: Dictionary of methods with a following signature:
-        ```
-        (value: Any) -> (valid: Bool, message: String?)
-        ```
+    ```
+    (value: Any) -> (valid: Bool, message: String?)
+    ```
     */
     public func validationMethodDictionary() -> [String: (Any)->(Bool, String?)] {
         return [:]
@@ -218,142 +220,5 @@ public class Model: NSObject {
     */
     private func resetValidationResult() {
         self.validationState = .Empty
-    }
-}
-
-
-/**
-**TODO**:
-2. Saving and fetching should be seamlesly integrated
-*/
-public class RestfulModel: Model {
-    /// Service for fetching and saving data
-    private static var _restService: Service?
-    
-    /// Service for fetching and saving data
-    private static var RestService: Service {
-        get {
-            if _restService == nil {
-                _restService = Service(serviceUrl: self.urlOfService())
-            }
-            return _restService!
-        }
-    }
-    
-    /// Initializes an object from provided NSData. Assumes that NSData contains
-    /// a JSON file.
-    required public init(data: NSData) throws {
-        super.init()
-        
-        let mirror = Mirror(reflecting: self)
-        let dict = try RestfulModel.dictionaryFromData(data)
-        
-        //todo throw if int value does not have a default
-        for child in mirror.children.map({ $0.label ?? ""}) {
-            self.setValue(dict[child], forKey: child)
-        }
-    }
-    
-    public override init() {
-        super.init()
-    }
-    
-    /** 
-    Returns a NSURL of a service that should manage persitstence of this class.
-    
-     - returns: A NSURL of REST service.
-    */
-    public class func urlOfService() -> NSURL {
-        fatalError("This method should be overriden in order to use RESTful functionalities")
-    }
-    
-    public func path() -> String {
-        fatalError("This method needs to be overriden to seamlessly update and delete objects")
-    }
-    
-    /**
-    Fires a create request.
-    
-     - parameter model: Model to be creted in the persistend store of the backend.
-     - returns: A promise of the backend's response
-    */
-    public class func create(model: RestfulModel) -> Promise {
-        return Promise {
-            (fulfill, reject) in
-            let data = try model.createNSData()
-            
-            fulfill(self.RestService.create(data).success(retrieveSuccess))
-        }
-    }
-    
-    /**
-    Fires a retrieve request. 
-    
-     - parameter path: An uri path to retrieve from. 
-     - returns: A promise of the retrieved ```RestfulModel```
-    */
-    public class func retrieve(path: String) -> Promise {
-        return self.RestService.retrieve(path).success(retrieveSuccess)
-    }
-    
-    //TODO: fix
-    public class func retrieve() -> Promise {
-        return self.RestService.retrieve().success(retrieveSuccess)
-    }
-    
-    public func retrieve(filter: [String: String]) -> Promise {
-        return Promise.fulfill(1)
-    }
-    
-    public func update() -> Promise {
-        return Promise {
-            (fulfill, reject) in
-            let data = try self.createNSData()
-            let path = self.path()
-            
-            fulfill(RestfulModel.RestService.update(path, data: data))
-        }
-    }
-    
-    public func destroy() -> Promise {
-        return RestfulModel.RestService.destroy(self.path())
-    }
-    
-    /**
-    Tries to parse data returned from API into an instance of this class.
-    */
-    private class func retrieveSuccess(result: Any) throws -> Any {
-        guard let (data, _) = result as? (NSData, NSURLResponse) else {
-            throw ModelError.ServiceError(result)
-        }
-        
-        return try self.init(data: data)
-    }
-    
-    /**
-    Returns a dictionary that was parsed from a JSON-formatted NSData.
-    */
-    private class func dictionaryFromData(data: NSData) throws -> [String: AnyObject] {
-        guard let parsedObject: [String: AnyObject] = try NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments) as? [String:AnyObject] else {
-            throw ModelError.ParsingError(data)
-        }
-        
-        return parsedObject
-    }
-    
-    /**
-    Encodes this object into a NSData object.
-    */
-    private func createNSData() throws -> NSData {
-        let mirror = Mirror(reflecting: self)
-        var dict: [String: AnyObject] = [:]
-        for child in mirror.children {
-            if child.label == "id" {
-                continue
-            }
-            dict[child.label!] = self.valueForKey(child.label!)
-        }
-        
-        return NSKeyedArchiver.archivedDataWithRootObject(dict)
     }
 }
