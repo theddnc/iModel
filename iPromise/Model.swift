@@ -12,15 +12,15 @@ import Foundation
 /**
 Models are a representation of interactive data as well as logic surrounding it. 
 
-A model will preserve it's state. Default state of the model after being created
-is ```.Empty```. 
+A model will preserve it's state. Default state of the model (```Model.validationState```) 
+after being created is ```.Empty```.
 
 When ```Model.validationState``` transitions from ```.Clean``` to ```.Dirty```
 clean values are saved in order to be restored by calling ```undo()``` method.
 
 Any validation logic can be provided by overriding ```validationMethodDictionary()```, 
 which returns a dictionary of ```[(property name): (validation method)]```. The provided
-methods will be called on calling ```validate()```. Returning ```(false, "Message")``` from
+methods will be called on ```validate()```. Returning ```(false, ...)``` from
 those methods will mark a corresponding field as invalid.
 
 When subclassing this class be aware of:
@@ -47,6 +47,9 @@ public class Model: NSObject {
         
         /// Thrown when provided NSData cannot be parsed to an object
         case ParsingError(NSData)
+        
+        /// Thrown when a subclass does not provide dafault values for its properties
+        case NoDefaultsError([String])
     }
     
     /**
@@ -149,14 +152,23 @@ public class Model: NSObject {
     }
     
     /**
-    Called when any property is changed. Default implementation prints changes.
+    Called when any property is changed. Default implementation does nothing.
     
      - parameter property: Name of the property that changed its value
      - parameter oldValue: Old value of the property
      - parameter newValue: New value of the property
     */
     public func property(property: String, changedFromValue oldValue: Any, toValue newValue: Any) {
-        print("\(property) changed \n\tfrom: \t\(oldValue) \n\tto: \t\(newValue)")
+        if self.dynamicType.debug() == true {
+            print("\(property) changed \n\tfrom: \t\(oldValue) \n\tto: \t\(newValue)")
+        }
+    }
+    
+    /**
+    Override to see property changes in the console.
+    */
+    public class func debug() -> Bool {
+        return false
     }
     
     /**
