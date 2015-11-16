@@ -200,6 +200,7 @@ public class Model: NSObject {
         // no errors encountered, model seems to be Clean
         if self.validationErrors.count == 0 {
             self.validationState = .Clean
+            self.undoDictionary = [:]
         }
     }
     
