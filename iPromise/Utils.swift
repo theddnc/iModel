@@ -43,4 +43,15 @@ struct Utils {
         
         return parsedObject
     }
+    
+    static func dictionaryFromMirror(mirror: Mirror) -> [String: Mirror.Child] {
+        var dict: [String: Mirror.Child] = [:]
+        for child in mirror.children {
+            if let key = child.label {
+                dict.updateValue(child, forKey: key)
+            }
+        }
+        
+        return dict
+    }
 }

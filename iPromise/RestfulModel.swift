@@ -41,7 +41,7 @@ of the following methods as needed.
 6. ```jsonAugmentRetrieve``` - provides means to add any additional data before parsing
     the JSON data into an object
 */
-public class RestfulModel: Model {
+public class RestfulModel: JsonModel {
     
     /// Service for fetching and saving data
     private static var _restService: Service?
@@ -61,64 +61,12 @@ public class RestfulModel: Model {
         }
     }
     
-    /**
-    Parses json dictionary into an instance of this class.
-    
-    JSON files are parsed using following algorithm:
-    
-    For each key-value pair:
-    0. Check if this property should be ignored by using ```jsonPropertyExclusions```.
-    If so, *go to next pair.*
-    
-    1. Check if there is a translation provided in ```jsonPropertyNames```. If so,
-    check if the object has a property with the given name. If so, this is the property
-    name for this key-value pair - *go to 4.*
-    
-        *Otherwise, continue.*
-    2. If the json property name is in snake_case convert it's name to camelCase and continue.
-    
-        *Otherwise, continue.*
-
-    3. If the json property name is in camelCase check if this class has a property with that name.
-    If so, *go to 4.*
-    
-        *Otherwise, fail silently and go to next pair*.
-    
-    4. Check if there is a parsing method provided in ```jsonPropertyParsingMethods```
-    and if so, use that method to parse this key-value pair. *Go to next pair.*
-    
-        Otherwise assign value from json to that property. *Go to next pair.*
-    */
-    required public init(jsonDict: [String: AnyObject]) throws {
-        super.init()
-        
-        let mirror = Mirror(reflecting: self)
-        let classProperties: [String] = mirror.children.map( {$0.label ?? ""} )
-        let propertyExclusions = self.dynamicType.jsonPropertyExclusions()
-        let propertyNames = self.dynamicType.jsonPropertyNames()
-        let propertyParsingMethods = self.dynamicType.jsonPropertyParsingMethods()
-        
-        for (key, value) in jsonDict {
-            if propertyExclusions.contains(key) {
-                continue    // we should ignore this key-value pair
-            }
-            if let propertyName = RestfulModel.getPropertyNameFromKey(key, propertyNames: propertyNames, classProperties: classProperties) {
-                if let parsedValue = propertyParsingMethods[key]?(value) {
-                    self.setValue(parsedValue, forKey: propertyName)
-                }
-                else {
-                    self.setValue(value, forKey: propertyName)
-                }
-            }
-            else {
-                print("Unable to find class property for provided key: \"\(key)\".")
-                continue
-            }
-        }
-    }
-    
     public override init() {
         super.init()
+    }
+    
+    public required init(jsonDict: [String : AnyObject]) throws {
+        try super.init(jsonDict: jsonDict)
     }
     
     /**
@@ -181,42 +129,6 @@ public class RestfulModel: Model {
         fatalError("This method needs to be overriden to provide identifiers for REST interface")
     }
     
-    
-    // MARK: - JSON parsing overrides
-    
-    
-    /**
-    Returns an array of ```[(json property name)]``` that will be ignored while parsing.
-    
-     - returns: an array of json keys to be ignored while parsing
-    */
-    public class func jsonPropertyExclusions() -> [String] {
-        return []
-    }
-    
-    /**
-    Returns a dictionary containing pairs of ```[(json property name): (model property name)]```
-    These values are used to override default property mapping when parsing JSON files.
-    
-     - returns: a map of json keys and class properties
-    */
-    public class func jsonPropertyNames() -> [String: String] {
-        return [:]
-    }
-    
-    /**
-    Returns a dictionary which contains methods for parsing given properties. Indexes are JSON keys.
-    These methods are useful when overriding default parsing behaviour, which is to call
-    ```setValue:forKey:```. For example, if the api returns an array of object ids, they
-    can be mapped to real objects in your application. Or, if the api returns an array of
-    JSON objects, a RestfulModel.init(NSData) might be passed as the method for that key.
-    
-     - returns: dictionary of property parsing methods with a following signature:
-        ```(AnyObject) -> AnyObject```
-    */
-    public class func jsonPropertyParsingMethods() -> [String: (AnyObject) -> AnyObject] {
-        return [:]
-    }
     
     /**
     Called just after the object is parsed into a dictionary of its properties. Provides
@@ -399,20 +311,7 @@ public class RestfulModel: Model {
     - returns: encoded NSData
     */
     private func createNSDataFor(method: Service.CRUDMethod) throws -> NSData {
-        let mirror = Mirror(reflecting: self)
-        var dict: [String: AnyObject] = [:]
-        let propertyNames = self.dynamicType.jsonPropertyNames()
-        
-        for child in mirror.children {
-            if let label = child.label {
-                let key: String = propertyNames
-                    .filter({ $0.1 == label})           //get all entries that match this property name
-                    .map({ $0.0 })                      //we only need keys, which correspond to json properties
-                    .first ?? label                     //and we only need the first one or, if there isn't one, the property name itself
-                
-                dict[key] = self.valueForKey(label)     //save the value at the correct key
-            }
-        }
+        var dict: [String: AnyObject] = self.createJsonDictionary()
         
         switch method {
         case .CREATE:
