@@ -10,12 +10,30 @@ import Foundation
 
 
 /**
- - initialized from json
- - serializable to json
+**TODO:** consider caching mirror
+**TODO:** allow nulls!!!!!!
+
+```JsonModel``` extends ```Model``` with JSON files parsing utilities. Basic usage of
+this class will be to name all properties using keys from the corresponding json file.
+
+To use more advanced configuration override the following methods:
+
+1. ```jsonPropertyExclusions``` - excludes a list of JSON keys from parsing
+2. ```jsonPropertyNames``` - provides a map which links JSON key to object's property
+name
+3. ```jsonPropertyParsingMethods``` - provides methods which override default parsing
+logic
+4. ```jsonBeforeDeserialize``` - modify json dictionary before parsing it into an 
+instance of ```JsonModel```
+5. ```jsonAfterDeserialize``` - modify json dictionary which is a result of deserialization
+of an instance of ```JsonModel```
 */
 public class JsonModel: Model {
     
+    /// ```ErrorType``` for this ```JsonModel```
     enum JsonModelError: ErrorType {
+        
+        /// Thrown when anyobject given to the ```fromJsonDictionary``` is not a dictionary
         case ParsingError(AnyObject)
     }
     
@@ -48,16 +66,17 @@ public class JsonModel: Model {
     
     Otherwise assign value from json to that property. *Go to next pair.*
     */
-    required public init(jsonDict: [String: AnyObject]) throws {
+    required public init(var jsonDict: [String: AnyObject]) throws {
         super.init()
         
         let mirror = Mirror(reflecting: self)
         let classChildren: [String: Mirror.Child] = Utils.dictionaryFromMirror(mirror)
-        //let classChildren: [Mirror.Child] = mirror.children.map{ $0 }
         let classProperties: [String] = Array(classChildren.keys)
         let propertyExclusions = self.dynamicType.jsonPropertyExclusions()
         let propertyNames = self.dynamicType.jsonPropertyNames()
         let propertyParsingMethods = self.dynamicType.jsonPropertyParsingMethods()
+        
+        jsonDict = self.dynamicType.jsonBeforeDeserialize(jsonDict)
         
         for (key, value) in jsonDict {
             if propertyExclusions.contains(key) {
@@ -77,6 +96,14 @@ public class JsonModel: Model {
                 continue
             }
         }
+    }
+    
+    /**
+    Initialize a ```JsonModel``` from NSData containing JSON file. 
+    */
+    public convenience init(data: NSData) throws {
+        let dict = try Utils.dictionaryFromData(data)
+        try self.init(jsonDict: dict)
     }
     
     public override init() {
@@ -117,9 +144,28 @@ public class JsonModel: Model {
     }
     
     /**
-    
+    Called at the beginning of object initialization from json dictionary. Override to modify
+    any data.
     */
-    public func createJsonDictionary() -> [String: AnyObject] {
+    public class func jsonBeforeDeserialize(data: [String: AnyObject]) -> [String: AnyObject] {
+        return data
+    }
+    
+    /**
+    Called at the end of object deserialization. Override to modify any data.
+    */
+    public class func jsonAfterSerialize(data: [String: AnyObject]) -> [String: AnyObject] {
+        return data
+    }
+    
+    /**
+    Creates a json dictionary from this object. If encounters properties which are
+    JsonModels calls this method on them as well.
+    
+     - returns: ```[String: AnyObject]``` dictionary that can be encoded into 
+        ```NSData``` and embedded as the body of an ```NSURLRequest```
+    */
+    public func toJsonDictionary() -> [String: AnyObject] {
         let mirror = Mirror(reflecting: self)
         var dict: [String: AnyObject] = [:]
         let propertyNames = self.dynamicType.jsonPropertyNames()
@@ -132,17 +178,43 @@ public class JsonModel: Model {
                     .first ?? label                     //and we only need the first one or, if there isn't one, the property name itself
                 
                 if self.valueForKey(label) is JsonModel {
-                    dict[key] = self.valueForKey(label)?.createJsonDictionary()
+                    //if value for this key is JsonModel, deserialize it
+                    dict[key] = self.valueForKey(label)?.toJsonDictionary()
                 }
                 else {
-                    dict[key] = self.valueForKey(label)     //save the value at the correct key
+                    //save the correct value at the correct key
+                    dict[key] = self.valueForKey(label)
                 }
             }
         }
         
+        dict = self.dynamicType.jsonAfterSerialize(dict)
+        
         return dict
     }
     
+    /**
+    Returns an instance of this class parsed from a given jsonDictionary. This method
+    should be used as one of ```jsonPropertyParsingMethods``` when deserializing nested
+    models. 
+    
+    Example:
+    
+    ```
+    class Address: JsonModel { /*...*/ }
+    
+    class User: JsonModel {
+        //...
+        var address: Address = Address()
+        
+        //...
+    
+        public override class func jsonPropertyParsingMethods() -> [String: (AnyObject) throws -> AnyObject {
+            return ["address": Address.fromJsonDictionary]
+        }
+    }
+    ```
+    */
     public class func fromJsonDictionary(jsonDict: AnyObject) throws -> JsonModel {
         if let dict = jsonDict as? [String: AnyObject] {
             return try self.init(jsonDict: dict)
