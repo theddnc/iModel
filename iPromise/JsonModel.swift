@@ -10,11 +10,10 @@ import Foundation
 
 
 /**
-**TODO:** consider caching mirror
-**TODO:** allow nulls!!!!!!
-
 ```JsonModel``` extends ```Model``` with JSON files parsing utilities. Basic usage of
 this class will be to name all properties using keys from the corresponding json file.
+
+**NOTE**: this class uses NSJSONSerialization. Json nulls are deserialized into ``NSNull``
 
 To use more advanced configuration override the following methods:
 
@@ -34,8 +33,17 @@ public class JsonModel: Model {
     enum JsonModelError: ErrorType {
         
         /// Thrown when anyobject given to the ```fromJsonDictionary``` is not a dictionary
-        case ParsingError(AnyObject)
+        case ParsingError(String, AnyObject)
     }
+        
+    /// contains a list of keys excluded from parsing
+    private static var propertyExclusions: [String] = JsonModel.jsonPropertyExclusions()
+    
+    /// contains a dictionary that maps json keys to property names
+    private static var propertyNames: [String: String] = JsonModel.jsonPropertyNames()
+    
+    /// contains a dictionary that provides parsing methods for json keys
+    private static var propertyParsingMethods: [String: (AnyObject) throws -> AnyObject] = JsonModel.jsonPropertyParsingMethods()
     
     
     /**
@@ -68,28 +76,16 @@ public class JsonModel: Model {
     */
     required public init(var jsonDict: [String: AnyObject]) throws {
         super.init()
-        
-        let mirror = Mirror(reflecting: self)
-        let classChildren: [String: Mirror.Child] = Utils.dictionaryFromMirror(mirror)
-        let classProperties: [String] = Array(classChildren.keys)
-        let propertyExclusions = self.dynamicType.jsonPropertyExclusions()
-        let propertyNames = self.dynamicType.jsonPropertyNames()
-        let propertyParsingMethods = self.dynamicType.jsonPropertyParsingMethods()
-        
-        jsonDict = self.dynamicType.jsonBeforeDeserialize(jsonDict)
+    
+        jsonDict = Utils.dictionaryNilsToNSNull(self.dynamicType.jsonBeforeDeserialize(jsonDict))
         
         for (key, value) in jsonDict {
-            if propertyExclusions.contains(key) {
-                continue    // we should ignore this key-value pair
+            if self.dynamicType.propertyExclusions.contains(key) {
+                continue
             }
             
-            if let propertyName = self.dynamicType.getPropertyNameFromKey(key, propertyNames: propertyNames, classProperties: classProperties) {
-                if let parsedValue = try propertyParsingMethods[key]?(value) {
-                    self.setValue(parsedValue, forKey: propertyName)
-                }
-                else {
-                    self.setValue(value, forKey: propertyName)
-                }
+            if let propertyName = self.dynamicType.getPropertyNameFromKey(key) {
+                try self.setValue(value, atKey: key, forPropertyNamed: propertyName)
             }
             else {
                 print("Unable to find class property for provided key: \"\(key)\".")
@@ -147,14 +143,14 @@ public class JsonModel: Model {
     Called at the beginning of object initialization from json dictionary. Override to modify
     any data.
     */
-    public class func jsonBeforeDeserialize(data: [String: AnyObject]) -> [String: AnyObject] {
+    public class func jsonBeforeDeserialize(data: [String: AnyObject?]) -> [String: AnyObject?] {
         return data
     }
     
     /**
     Called at the end of object deserialization. Override to modify any data.
     */
-    public class func jsonAfterSerialize(data: [String: AnyObject]) -> [String: AnyObject] {
+    public class func jsonAfterSerialize(data: [String: AnyObject?]) -> [String: AnyObject?] {
         return data
     }
     
@@ -181,6 +177,10 @@ public class JsonModel: Model {
                     //if value for this key is JsonModel, deserialize it
                     dict[key] = self.valueForKey(label)?.toJsonDictionary()
                 }
+                else if self.valueForKey(label) == nil {
+                    //if value for this key is nil, set NSNull()
+                    dict[key] = NSNull()
+                }
                 else {
                     //save the correct value at the correct key
                     dict[key] = self.valueForKey(label)
@@ -188,7 +188,7 @@ public class JsonModel: Model {
             }
         }
         
-        dict = self.dynamicType.jsonAfterSerialize(dict)
+        dict = Utils.dictionaryNilsToNSNull(self.dynamicType.jsonAfterSerialize(dict))
         
         return dict
     }
@@ -220,7 +220,7 @@ public class JsonModel: Model {
             return try self.init(jsonDict: dict)
         }
         else {
-            throw JsonModelError.ParsingError(jsonDict)
+            throw JsonModelError.ParsingError("", jsonDict)
         }
     }
     
@@ -229,24 +229,49 @@ public class JsonModel: Model {
     property name.
     
     - parameter key: JSON dictionary key, that will be mapped to a property name
-    - parameter propertyNames: a dictionary that maps json property names to class property names
-    - parameter classProperties: an array of class properties (provided by reflection)
     
     - returns: Correctly mapped property name, or nil, if a property couldn't be found on object
     */
-    private class func getPropertyNameFromKey(key: String, propertyNames: [String: String], classProperties: [String]) -> String? {
-        if propertyNames.keys.contains(key) && classProperties.contains(propertyNames[key]!){
-            return propertyNames[key]!
+    private class func getPropertyNameFromKey(key: String) -> String? {
+        if self.propertyNames.keys.contains(key) && self.classProperties.contains(self.propertyNames[key]!){
+            return self.propertyNames[key]!
         }
         
-        if key.containsString("_") && classProperties.contains(Utils.toCamelCase(key)) {
-            return Utils.toCamelCase(propertyNames[key]!)
+        if key.containsString("_") && self.classProperties.contains(Utils.toCamelCase(key)) {
+            return Utils.toCamelCase(self.propertyNames[key]!)
         }
         
-        if classProperties.contains(key) {
+        if self.classProperties.contains(key) {
             return key
         }
         
         return nil
+    }
+    
+    /**
+    Set a property to a value located a the given key
+    
+     - parameter value: a value from parsed json
+     - parameter key: key corresponding to that value
+     - parameter propertyName: name of the property to set the value of
+     
+     - throws ```JsonModelError.ParsingError(key, value)```
+    */
+    private func setValue(value: AnyObject, atKey key: String, forPropertyNamed propertyName: String) throws {
+        if value is NSNull && Mirror(reflecting: self.dynamicType.classChildren![key]).displayStyle == .Optional {
+            self.setValue(nil, forKey: propertyName)
+        }
+        else if let parsingMethod = self.dynamicType.propertyParsingMethods[key] {
+            do {
+                let parsedValue = try parsingMethod(value)
+                self.setValue(parsedValue, forKey: propertyName)
+            }
+            catch _ as JsonModelError {
+                throw JsonModelError.ParsingError(key, value)
+            }
+        }
+        else {
+            self.setValue(value, forKey: propertyName)
+        }
     }
 }

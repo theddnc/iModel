@@ -23,18 +23,15 @@ which returns a dictionary of ```[(property name): (validation method)]```. The 
 methods will be called on ```validate()```. Returning ```(false, ...)``` from
 those methods will mark a corresponding field as invalid.
 
-When subclassing this class be aware of:
+**NOTE**:
+ 1. This class is using Swift's reflection, however ```MirrorType``` results are cached.
+ 2. This class is using obj-c KVO.
+
+**When subclassing this class be aware of**:
 1. If a property is not marked with ```dynamic``` keyword it will not be observed and
     hence will not influence object's ```validationState```.
 2. If a property is not provided with it's default value, Swift's reflection engine
     might not work properly and your app will crash.
-
-**TODO**:
-4. Should fire events on an event bus - what events?
-4a.Or should expose callbacks such as viewDidLoad - what callbacks?
-
-7. Consider implementing local persistence in model class. Something using core data or
-simple file storage - a mirror of RESTful API.
 */
 public class Model: NSObject {
     /**
@@ -68,6 +65,21 @@ public class Model: NSObject {
         
         /// Validation failed with errors. Dict contains values returned by validation methods.
         case Invalid([String: String])
+    }
+    
+    /// will contain a reflected dictionary of class children after running first init
+    internal static var classChildren: [String: Mirror.Child]?
+    
+    /// contains a list of class children
+    internal static var classProperties: [String] {
+        get {
+            if self.classChildren != nil {
+                return Array(self.classChildren!.keys)
+            }
+            else {
+                return []
+            }
+        }
     }
     
     /// Contains values which will be restored on calling ```undo()```
@@ -104,11 +116,13 @@ public class Model: NSObject {
     public override init() {
         super.init()
         
-        // grab a mirror
-        let mirror = Mirror(reflecting: self)
+        // set up a mirror
+        if self.dynamicType.classChildren == nil {
+            self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
+        }
         
         // create KVO for fields
-        for child in mirror.children {
+        for child in self.dynamicType.classChildren!.values {
             guard let label = child.label else { continue }
             self.addObserver(self, forKeyPath: label, options: NSKeyValueObservingOptions([.New, .Old]), context: nil)
         }
@@ -116,11 +130,14 @@ public class Model: NSObject {
     
     /// Deinitializes a model object. Removes KVO for properties.
     deinit {
-        // grab a mirror
-        let mirror = Mirror(reflecting: self)
+        
+        // set up a mirror
+        if self.dynamicType.classChildren == nil {
+            self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
+        }
         
         // remove KVO for fields
-        for child in mirror.children {
+        for child in self.dynamicType.classChildren!.values {
             guard let label = child.label else { continue }
             self.removeObserver(self, forKeyPath: label)
         }

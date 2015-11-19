@@ -54,4 +54,12 @@ struct Utils {
         
         return dict
     }
+    
+    static func dictionaryNilsToNSNull(dict: [String: AnyObject?]) -> [String: AnyObject] {
+        var returnDictionary: [String: AnyObject] = [:]
+        for (key, value) in dict {
+            returnDictionary.updateValue(value ?? NSNull(), forKey: key)
+        }
+        return returnDictionary
+    }
 }
