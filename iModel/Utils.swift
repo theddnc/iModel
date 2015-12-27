@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct Utils {
+internal struct Utils {
     static func toCamelCase(snakeCaseString: String) -> String {
         return snakeCaseString.characters
             .split("_")
