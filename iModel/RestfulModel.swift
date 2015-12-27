@@ -7,6 +7,8 @@
 //
 
 import Foundation
+import iService
+import iPromise
 
 /**
 Restful model, being a subclass of Model, contains all the validation capabilities and
@@ -155,17 +157,19 @@ public class RestfulModel: JsonModel {
     - parameter model: Model to be creted in the persistend store of the backend.
     - returns: A promise of the backend's response
     */
-    public class func create(model: RestfulModel) -> Promise {
+    public class func create(model: RestfulModel) -> Promise<RestfulModel> {
         return Promise {
             (fulfill, reject) in
             let data = try model.createNSDataFor(.CREATE)
-            let promise = self.RestService
+            self.RestService
                 .override(crudConfigureRequestForCreate)
                 .create(data)
                 .success(retrieveSuccess)
-            
-            
-            fulfill(promise)
+                .then({ result in
+                    fulfill(result)
+                }, onFailure: { error in
+                    reject(error)
+                })
         }
     }
     
@@ -175,7 +179,7 @@ public class RestfulModel: JsonModel {
     - parameter path: An uri path to retrieve from.
     - returns: A promise of the retrieved ```RestfulModel```
     */
-    public class func retrieve(path: String) -> Promise {
+    public class func retrieve(path: String) -> Promise<RestfulModel> {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve(path)
@@ -185,7 +189,7 @@ public class RestfulModel: JsonModel {
     /**
     Retrieve all objects from the server. 
     */
-    public class func retrieve() -> Promise {
+    public class func retrieve() -> Promise<[RestfulModel]> {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve()
@@ -195,7 +199,7 @@ public class RestfulModel: JsonModel {
     /**
     Retrieve a filtered list of objects from the server.
     */
-    public class func retrieve(filter: [String: String]) -> Promise {
+    public class func retrieve(filter: [String: String]) -> Promise<[RestfulModel]> {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve(filter)
@@ -208,16 +212,21 @@ public class RestfulModel: JsonModel {
     
      - returns: Promise of the updated object.
     */
-    public func update() -> Promise {
+    public func update() -> Promise<RestfulModel> {
         return Promise {
             (fulfill, reject) in
             let data = try self.createNSDataFor(.UPDATE)
             let path = self.path()
             
-            fulfill(RestfulModel.RestService
+            RestfulModel.RestService
                 .override(self.dynamicType.crudConfigureRequestForUpdate)
                 .update(path, data: data)
-                .success(self.dynamicType.retrieveSuccess))
+                .success(self.dynamicType.retrieveSuccess)
+                .then({ result in
+                    fulfill(result)
+                }, onFailure: { error in
+                    reject(error)
+                })
         }
     }
     
@@ -227,7 +236,7 @@ public class RestfulModel: JsonModel {
     
      - returns: Promise of the result.
     */
-    public func destroy() -> Promise {
+    public func destroy() -> Promise<ResponseBundle> {
         return RestfulModel.RestService
             .override(self.dynamicType.crudConfigureRequestForDestroy)
             .destroy(self.path())
@@ -241,8 +250,8 @@ public class RestfulModel: JsonModel {
     Tries to parse data returned from API into an instance of this class. Called as a
     handler for retrieve promise.
     */
-    private class func retrieveSuccess(result: Any) throws -> Any {
-        guard let (data, _) = result as? (NSData, NSURLResponse) else {
+    private class func retrieveSuccess(result: ResponseBundle) throws -> RestfulModel {
+        guard let data = result.data else {
             throw ModelError.ServiceError(result)   //this should never happen when using services correctly
         }
         
@@ -256,8 +265,8 @@ public class RestfulModel: JsonModel {
     Tries to parse data returned from API into an array of instances of this class. Called
     as a handler for retrieve promise.
     */
-    private class func retrieveManySuccess(result: Any) throws -> Any {
-        guard let (data, _) = result as? (NSData, NSURLResponse) else {
+    private class func retrieveManySuccess(result: ResponseBundle) throws -> [RestfulModel] {
+        guard let data = result.data else {
             throw ModelError.ServiceError(result)   //this should never happen when using services correctly
         }
         
