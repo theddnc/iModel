@@ -12,14 +12,14 @@ import Foundation
 /**
 Models are a representation of interactive data as well as logic surrounding it. 
 
-A model will preserve it's state. Default state of the model (```Model.validationState```) 
+A model has it's state. Default state of the model (```Model.validationState```)
 after being created is ```.Empty```.
 
 When ```Model.validationState``` transitions from ```.Clean``` to ```.Dirty```
 clean values are saved in order to be restored by calling ```undo()``` method.
 
-Any validation logic can be provided by overriding ```validationMethodDictionary()```, 
-which returns a dictionary of ```[(property name): (validation method)]```. The provided
+Any validation logic can be provided by calling ```setValidationMethod()```. It's best
+to define validation methods as ```class func``` in the ```Model``` subclass. The provided
 methods will be called on ```validate()```. Returning ```(false, ...)``` from
 those methods will mark a corresponding field as invalid.
 
@@ -60,11 +60,11 @@ public class Model: NSObject {
         /// Default state before any changes are made
         case Empty
         
-        /// Changes made, needs to validate. Array contais names of changed properties.
-        case Dirty([String])
+        /// Changes made, needs to validate
+        case Dirty
         
-        /// Validation failed with errors. Dict contains values returned by validation methods.
-        case Invalid([String: String])
+        /// Validation failed with errors
+        case Invalid
     }
     
     /// will contain a reflected dictionary of class children after running first init
@@ -82,33 +82,34 @@ public class Model: NSObject {
         }
     }
     
+    private var _dirtyProperties: [String] = []
+    private var _validationErrors: [String: String] = [:]
+    private static var _validationMethodDictionary: [String: (Any)->(Bool, String)] = [:]
+    
     /// Contains values which will be restored on calling ```undo()```
     private var undoDictionary: [String: Any] = [:]
     
     /// Contains validation state of this object.
     public var validationState: ValidationState = .Empty
+
     
     /// Contains list of properties that were modified since last validation
     public var dirtyProperties: [String] {
         get {
-            switch self.validationState {
-            case .Dirty(let values):
-                return values
-            default:
-                return []
+            if self.validationState == .Dirty {
+                return _dirtyProperties
             }
+            return []
         }
     }
     
     /// Contains a dictionary of errors if this object is in ```.Invalid``` state
     public var validationErrors: [String: String] {
         get {
-            switch self.validationState {
-            case .Invalid(let values):
-                return values
-            default:
-                return [:]
+            if self.validationState == .Invalid {
+                return _validationErrors
             }
+            return [:]
         }
     }
     
@@ -117,9 +118,7 @@ public class Model: NSObject {
         super.init()
         
         // set up a mirror
-        if self.dynamicType.classChildren == nil {
-            self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
-        }
+        self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
         
         // create KVO for fields
         for child in self.dynamicType.classChildren!.values {
@@ -132,9 +131,7 @@ public class Model: NSObject {
     deinit {
         
         // set up a mirror
-        if self.dynamicType.classChildren == nil {
-            self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
-        }
+        self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
         
         // remove KVO for fields
         for child in self.dynamicType.classChildren!.values {
@@ -158,7 +155,9 @@ public class Model: NSObject {
         if !dirtyProperties.contains(propertyKey) {
             dirtyProperties.append(propertyKey)
         }
-        model.validationState = .Dirty(dirtyProperties)
+        model.validationState = .Dirty
+        
+        _dirtyProperties = dirtyProperties
         
         // update undo dictionary
         if !undoDictionary.keys.contains(propertyKey) {
@@ -175,7 +174,7 @@ public class Model: NSObject {
      - parameter oldValue: Old value of the property
      - parameter newValue: New value of the property
     */
-    public func property(property: String, changedFromValue oldValue: Any, toValue newValue: Any) {
+    public func property<T>(property: String, changedFromValue oldValue: T, toValue newValue: T) {
         if self.dynamicType.debug() == true {
             print("\(property) changed \n\tfrom: \t\(oldValue) \n\tto: \t\(newValue)")
         }
@@ -195,7 +194,7 @@ public class Model: NSObject {
         self.resetValidationResult()
         
         // iterate over provided validation methods
-        for (propertyName, validationMethod) in self.validationMethodDictionary() {
+        for (propertyName, validationMethod) in self.dynamicType._validationMethodDictionary {
             
             // ensure that property with that name exists and fail silently otherwise
             guard self.respondsToSelector(Selector(propertyName)) == true else {
@@ -209,8 +208,9 @@ public class Model: NSObject {
             
             if result == false {
                 var errors = self.validationErrors
-                errors[propertyName] = message ?? ""
-                self.validationState = .Invalid(errors)
+                errors[propertyName] = message
+                self.validationState = .Invalid
+                _validationErrors = errors
             }
         }
         
@@ -234,15 +234,21 @@ public class Model: NSObject {
     }
     
     /**
-    Returns a dictionary of validation methods. Default implementation returns an empty dict.
-    
-    - returns: Dictionary of methods with a following signature:
-    ```
-    (value: Any) -> (valid: Bool, message: String?)
-    ```
+    Sets a validation method for a given field.
+     
+     - parameter method: Method to call when validating given field. Validation methods return
+       a tuple of ```Bool``` and ```String```. First element of this tuple determines if the field is valid,
+       second one contains a description of any errors.
+     - parameter field: Field to be validated with the given method
     */
-    public func validationMethodDictionary() -> [String: (Any)->(Bool, String?)] {
-        return [:]
+    public class func setValidationMethod<T>(method: (T)->(Bool, String), forField field: String) {
+        _validationMethodDictionary[field] = { value in
+            guard let value = value as? T else {
+                return (false, "Validation method provided did not match field type")
+            }
+            
+            return method(value)
+        }
     }
     
     /**
@@ -250,5 +256,7 @@ public class Model: NSObject {
     */
     private func resetValidationResult() {
         self.validationState = .Empty
+        self._dirtyProperties = []
+        self._validationErrors = [:]
     }
 }

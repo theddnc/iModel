@@ -9,11 +9,14 @@
 /* Begin PBXBuildFile section */
 		30AF024A1C3037D500BB7224 /* iModel.h in Headers */ = {isa = PBXBuildFile; fileRef = 30AF02491C3037D500BB7224 /* iModel.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		30AF02511C3037D500BB7224 /* iModel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 30AF02461C3037D500BB7224 /* iModel.framework */; };
-		30AF02561C3037D500BB7224 /* iModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF02551C3037D500BB7224 /* iModelTests.swift */; };
+		30AF02561C3037D500BB7224 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF02551C3037D500BB7224 /* ModelTests.swift */; };
 		30AF02641C30381E00BB7224 /* JsonModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF02601C30381E00BB7224 /* JsonModel.swift */; };
 		30AF02651C30381E00BB7224 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF02611C30381E00BB7224 /* Model.swift */; };
 		30AF02661C30381E00BB7224 /* RestfulModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF02621C30381E00BB7224 /* RestfulModel.swift */; };
 		30AF02671C30381E00BB7224 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF02631C30381E00BB7224 /* Utils.swift */; };
+		30AF02691C31422400BB7224 /* JZTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF02681C31422400BB7224 /* JZTestCase.swift */; };
+		30AF026B1C3157F600BB7224 /* JsonModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF026A1C3157F600BB7224 /* JsonModelTests.swift */; };
+		30AF026D1C316F3800BB7224 /* RestfulModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AF026C1C316F3800BB7224 /* RestfulModelTests.swift */; };
 		6A3DB9F76BB026BA43B6EA50 /* Pods_iModelTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F8B7A170767E88008A839486 /* Pods_iModelTests.framework */; };
 		900071154B154BC26CD2211E /* Pods_iModel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55351F253903B1BF5EBCDB6A /* Pods_iModel.framework */; };
 /* End PBXBuildFile section */
@@ -34,12 +37,15 @@
 		30AF02491C3037D500BB7224 /* iModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iModel.h; sourceTree = "<group>"; };
 		30AF024B1C3037D500BB7224 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		30AF02501C3037D500BB7224 /* iModelTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iModelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		30AF02551C3037D500BB7224 /* iModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iModelTests.swift; sourceTree = "<group>"; };
+		30AF02551C3037D500BB7224 /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
 		30AF02571C3037D500BB7224 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		30AF02601C30381E00BB7224 /* JsonModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = JsonModel.swift; sourceTree = "<group>"; };
 		30AF02611C30381E00BB7224 /* Model.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
 		30AF02621C30381E00BB7224 /* RestfulModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RestfulModel.swift; sourceTree = "<group>"; };
 		30AF02631C30381E00BB7224 /* Utils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
+		30AF02681C31422400BB7224 /* JZTestCase.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = JZTestCase.swift; sourceTree = "<group>"; };
+		30AF026A1C3157F600BB7224 /* JsonModelTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = JsonModelTests.swift; sourceTree = "<group>"; };
+		30AF026C1C316F3800BB7224 /* RestfulModelTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RestfulModelTests.swift; sourceTree = "<group>"; };
 		35F4A2B0B2677E19C1C1F66C /* Pods-iModel.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iModel.release.xcconfig"; path = "Pods/Target Support Files/Pods-iModel/Pods-iModel.release.xcconfig"; sourceTree = "<group>"; };
 		55351F253903B1BF5EBCDB6A /* Pods_iModel.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iModel.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C6D9891CD6B80F909591B8C /* Pods-iModel.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iModel.debug.xcconfig"; path = "Pods/Target Support Files/Pods-iModel/Pods-iModel.debug.xcconfig"; sourceTree = "<group>"; };
@@ -104,8 +110,11 @@
 		30AF02541C3037D500BB7224 /* iModelTests */ = {
 			isa = PBXGroup;
 			children = (
-				30AF02551C3037D500BB7224 /* iModelTests.swift */,
+				30AF02551C3037D500BB7224 /* ModelTests.swift */,
 				30AF02571C3037D500BB7224 /* Info.plist */,
+				30AF02681C31422400BB7224 /* JZTestCase.swift */,
+				30AF026A1C3157F600BB7224 /* JsonModelTests.swift */,
+				30AF026C1C316F3800BB7224 /* RestfulModelTests.swift */,
 			);
 			path = iModelTests;
 			sourceTree = "<group>";
@@ -332,7 +341,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				30AF02561C3037D500BB7224 /* iModelTests.swift in Sources */,
+				30AF02561C3037D500BB7224 /* ModelTests.swift in Sources */,
+				30AF026B1C3157F600BB7224 /* JsonModelTests.swift in Sources */,
+				30AF02691C31422400BB7224 /* JZTestCase.swift in Sources */,
+				30AF026D1C316F3800BB7224 /* RestfulModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

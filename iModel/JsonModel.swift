@@ -30,20 +30,20 @@ of an instance of ```JsonModel```
 public class JsonModel: Model {
     
     /// ```ErrorType``` for this ```JsonModel```
-    enum JsonModelError: ErrorType {
+    public enum JsonModelError: ErrorType {
         
         /// Thrown when anyobject given to the ```fromJsonDictionary``` is not a dictionary
         case ParsingError(String, AnyObject)
     }
         
     /// contains a list of keys excluded from parsing
-    private static var propertyExclusions: [String] = JsonModel.jsonPropertyExclusions()
+    private static var propertyExclusions: [String] = []
     
     /// contains a dictionary that maps json keys to property names
-    private static var propertyNames: [String: String] = JsonModel.jsonPropertyNames()
+    private static var propertyNames: [String: String] = [:]
     
     /// contains a dictionary that provides parsing methods for json keys
-    private static var propertyParsingMethods: [String: (AnyObject) throws -> AnyObject] = JsonModel.jsonPropertyParsingMethods()
+    private static var propertyParsingMethods: [String: (AnyObject) throws -> AnyObject] = [:]
     
     
     /**
@@ -76,6 +76,10 @@ public class JsonModel: Model {
     */
     required public init(var jsonDict: [String: AnyObject]) throws {
         super.init()
+        
+        self.dynamicType.propertyExclusions = self.dynamicType.jsonPropertyExclusions()
+        self.dynamicType.propertyNames = self.dynamicType.jsonPropertyNames()
+        self.dynamicType.propertyParsingMethods = self.dynamicType.jsonPropertyParsingMethods()
     
         jsonDict = Utils.dictionaryNilsToNSNull(self.dynamicType.jsonBeforeDeserialize(jsonDict))
         
@@ -233,12 +237,12 @@ public class JsonModel: Model {
     - returns: Correctly mapped property name, or nil, if a property couldn't be found on object
     */
     private class func getPropertyNameFromKey(key: String) -> String? {
-        if self.propertyNames.keys.contains(key) && self.classProperties.contains(self.propertyNames[key]!){
-            return self.propertyNames[key]!
+        if self.jsonPropertyNames().keys.contains(key) && self.classProperties.contains(self.jsonPropertyNames()[key]!){
+            return self.jsonPropertyNames()[key]!
         }
         
         if key.containsString("_") && self.classProperties.contains(Utils.toCamelCase(key)) {
-            return Utils.toCamelCase(self.propertyNames[key]!)
+            return Utils.toCamelCase(key)
         }
         
         if self.classProperties.contains(key) {

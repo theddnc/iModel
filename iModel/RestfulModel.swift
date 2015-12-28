@@ -183,7 +183,7 @@ public class RestfulModel: JsonModel {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve(path)
-            .success(retrieveSuccess)
+            .then(retrieveSuccess)
     }
     
     /**
@@ -193,7 +193,7 @@ public class RestfulModel: JsonModel {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve()
-            .success(retrieveManySuccess)
+            .then(retrieveManySuccess)
     }
     
     /**
@@ -203,7 +203,7 @@ public class RestfulModel: JsonModel {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve(filter)
-            .success(retrieveManySuccess)
+            .then(retrieveManySuccess)
     }
     
     /**
@@ -276,32 +276,6 @@ public class RestfulModel: JsonModel {
             .map({$0 as! [String:AnyObject]})
             .map(self.crudAugmentRetrieve)
             .map(self.init)
-    }
-    
-    /**
-    For a given json key, property map and class property names, get a correct
-    property name. 
-    
-     - parameter key: JSON dictionary key, that will be mapped to a property name
-     - parameter propertyNames: a dictionary that maps json property names to class property names
-     - parameter classProperties: an array of class properties (provided by reflection)
-    
-     - returns: Correctly mapped property name, or nil, if a property couldn't be found on object
-    */
-    private class func getPropertyNameFromKey(key: String, propertyNames: [String: String], classProperties: [String]) -> String? {
-        if propertyNames.keys.contains(key) && classProperties.contains(propertyNames[key]!){
-            return propertyNames[key]!
-        }
-        
-        if key.containsString("_") && classProperties.contains(Utils.toCamelCase(key)) {
-            return Utils.toCamelCase(propertyNames[key]!)
-        }
-        
-        if classProperties.contains(key) {
-            return key
-        }
-        
-        return nil
     }
     
     /**
