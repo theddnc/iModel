@@ -270,4 +270,4 @@ Documentation is available [here](http://cocoadocs.org/docsets/iModel/0.0.1/)
 
 ## Licence
 
-See ```LICENCE```
+See [LICENCE](https://github.com/theddnc/iModel/blob/master/LICENCE)
