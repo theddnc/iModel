@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "iModel"
-  s.version      = "0.0.1"
+  s.version      = "0.0.2"
   s.summary      = "Validation, JSON parsing and async remote communication in one bundle."
 
 s.description  = <<-DESC
@@ -16,10 +16,10 @@ s.description  = <<-DESC
 
   s.platform     = :ios, "8.0"
 
-  s.source       = { :git => "https://github.com/theddnc/iModel.git", :tag => "0.0.1"}
+  s.source       = { :git => "https://github.com/theddnc/iModel.git", :tag => "0.0.2"}
 
   s.source_files  = "iModel/*"
 
-  s.dependency "iPromise", "~> 1.1"
+  s.dependency "iService", "~> 0.0"
 
 end
