@@ -266,7 +266,7 @@ For more information about these methods, visit the documentation.
 
 ## Documentation
 
-Documentation is available [here](http://cocoadocs.org/docsets/iModel/0.0.1/)
+Documentation should be available [here](http://cocoadocs.org/docsets/iModel/0.0.1/)
 
 ## Licence
 
