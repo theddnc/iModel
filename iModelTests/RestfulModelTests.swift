@@ -118,7 +118,7 @@ class RestfulModelTests: JZTestCase {
                 testable.key = "new value"
                 
                 return testable.update()
-            }).then({ result in
+            }).then({ (result) -> Void in
                 guard let testable = result as? Testable else {return}
                 
                 XCTAssertEqual(testable.key, "new value")

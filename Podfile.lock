@@ -1,6 +1,6 @@
 PODS:
-  - iPromise (1.1.0)
-  - iService (0.0.2):
+  - iPromise (1.1.2)
+  - iService (0.0.3):
     - iPromise (~> 1.1)
   - Nocilla (0.10.0)
 
@@ -9,8 +9,8 @@ DEPENDENCIES:
   - Nocilla
 
 SPEC CHECKSUMS:
-  iPromise: f0880908b61c11899a6608c85d0de4ff89909610
-  iService: 509345191db666f918ef313360f5092c16030b5f
+  iPromise: bb0109c174f792c619fd6215799214ef60e74060
+  iService: 8b65ecce3ca12732079b78d550f01942dc6916fa
   Nocilla: ae0a2b05f3087b473624ac2b25903695df51246a
 
 COCOAPODS: 0.39.0

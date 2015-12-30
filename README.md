@@ -4,7 +4,7 @@
 [![CocoaPods](https://img.shields.io/cocoapods/v/iModel.svg)](https://cocoapods.org/pods/iModel)
 [![CocoaPods](https://img.shields.io/cocoapods/l/iModel.svg)](https://cocoapods.org/pods/iModel)
 [![CocoaPods](https://img.shields.io/cocoapods/p/iModel.svg)](https://cocoapods.org/pods/iModel)
-[![CocoaPods](https://img.shields.io/cocoapods/metrics/doc-percent/iModel.svg)](http://cocoadocs.org/docsets/iModel/0.0.2/)
+[![CocoaPods](https://img.shields.io/cocoapods/metrics/doc-percent/iModel.svg)](http://cocoadocs.org/docsets/iModel/0.0.3/)
 
 Validation, JSON parsing and async remote communication in one bundle.
 
@@ -266,7 +266,7 @@ For more information about these methods, visit the documentation.
 
 ## Documentation
 
-Documentation should be available [here](http://cocoadocs.org/docsets/iModel/0.0.2/)
+Documentation should be available [here](http://cocoadocs.org/docsets/iModel/0.0.3/)
 
 ## Licence
 
