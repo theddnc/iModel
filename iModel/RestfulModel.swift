@@ -157,7 +157,7 @@ public class RestfulModel: JsonModel {
     - parameter model: Model to be creted in the persistend store of the backend.
     - returns: A promise of the backend's response
     */
-    public class func create(model: RestfulModel) -> Promise<RestfulModel> {
+    public class func create<T: RestfulModel>(model: T) -> Promise<T> {
         return Promise {
             (fulfill, reject) in
             let data = try model.createNSDataFor(.CREATE)
@@ -166,7 +166,7 @@ public class RestfulModel: JsonModel {
                 .create(data)
                 .success(retrieveSuccess)
                 .then({ result in
-                    fulfill(result)
+                    fulfill(result as! T)
                 }, onFailure: { error in
                     reject(error)
                 })
@@ -179,7 +179,7 @@ public class RestfulModel: JsonModel {
     - parameter path: An uri path to retrieve from.
     - returns: A promise of the retrieved ```RestfulModel```
     */
-    public class func retrieve(path: String) -> Promise<RestfulModel> {
+    public class func retrieve<T: RestfulModel>(path: String) -> Promise<T> {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve(path)
@@ -189,7 +189,7 @@ public class RestfulModel: JsonModel {
     /**
     Retrieve all objects from the server. 
     */
-    public class func retrieve() -> Promise<[RestfulModel]> {
+    public class func retrieve<T: RestfulModel>() -> Promise<[T]> {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve()
@@ -199,7 +199,7 @@ public class RestfulModel: JsonModel {
     /**
     Retrieve a filtered list of objects from the server.
     */
-    public class func retrieve(filter: [String: String]) -> Promise<[RestfulModel]> {
+    public class func retrieve<T: RestfulModel>(filter: [String: String]) -> Promise<[T]> {
         return self.RestService
             .override(crudConfigureRequestForRetrieve)
             .retrieve(filter)
@@ -212,7 +212,7 @@ public class RestfulModel: JsonModel {
     
      - returns: Promise of the updated object.
     */
-    public func update() -> Promise<RestfulModel> {
+    public func update<T>() -> Promise<T> {
         return Promise {
             (fulfill, reject) in
             let data = try self.createNSDataFor(.UPDATE)
@@ -223,7 +223,7 @@ public class RestfulModel: JsonModel {
                 .update(path, data: data)
                 .success(self.dynamicType.retrieveSuccess)
                 .then({ result in
-                    fulfill(result)
+                    fulfill(result as! T)
                 }, onFailure: { error in
                     reject(error)
                 })
@@ -250,7 +250,7 @@ public class RestfulModel: JsonModel {
     Tries to parse data returned from API into an instance of this class. Called as a
     handler for retrieve promise.
     */
-    private class func retrieveSuccess(result: ResponseBundle) throws -> RestfulModel {
+    private class func retrieveSuccess<T: RestfulModel>(result: ResponseBundle) throws -> T {
         guard let data = result.data else {
             throw ModelError.ServiceError(result)   //this should never happen when using services correctly
         }
@@ -258,14 +258,14 @@ public class RestfulModel: JsonModel {
         var jsonDict = try Utils.dictionaryFromData(data)
         jsonDict = crudAugmentRetrieve(jsonDict)
         
-        return try self.init(jsonDict: jsonDict)
+        return try self.init(jsonDict: jsonDict) as! T
     }
     
     /**
     Tries to parse data returned from API into an array of instances of this class. Called
     as a handler for retrieve promise.
     */
-    private class func retrieveManySuccess(result: ResponseBundle) throws -> [RestfulModel] {
+    private class func retrieveManySuccess<T>(result: ResponseBundle) throws -> [T] {
         guard let data = result.data else {
             throw ModelError.ServiceError(result)   //this should never happen when using services correctly
         }
@@ -276,6 +276,9 @@ public class RestfulModel: JsonModel {
             .map({$0 as! [String:AnyObject]})
             .map(self.crudAugmentRetrieve)
             .map(self.init)
+            .map({ (item: RestfulModel) in
+                return item as! T
+            })
     }
     
     /**

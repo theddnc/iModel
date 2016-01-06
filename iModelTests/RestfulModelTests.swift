@@ -36,9 +36,7 @@ class RestfulModelTests: JZTestCase {
             .withBody("{\"key\":\"value\", \"id\": 1}")
         
         expect { te in
-            Testable.retrieve("1").then({ result in
-                guard let result = result as? Testable else { return }
-                
+            Testable.retrieve("1").then({ (result: Testable) in
                 XCTAssertEqual(result.id, 1)
                 XCTAssertEqual(result.key, "value")
                 te.fulfill()
@@ -52,9 +50,8 @@ class RestfulModelTests: JZTestCase {
             .withBody("[{\"key\":\"value0\", \"id\": 1}, {\"key\":\"value1\", \"id\": 2}]")
         
         expect { te in
-            Testable.retrieve().then({ result in
+            Testable.retrieve().then({ (result: [Testable]) in
                 for (i, item) in result.enumerate() {
-                    guard let item = item as? Testable else { continue }
                     XCTAssertEqual(item.id, i + 1)
                     XCTAssertEqual(item.key, "value\(i)")
                 }
@@ -70,11 +67,9 @@ class RestfulModelTests: JZTestCase {
             .withBody("[{\"key\":\"value\", \"id\": 1}]")
         
         expect { te in
-            Testable.retrieve(["id": "1"]).then({ result in
-                guard let item = result.first as? Testable else {return}
-                
-                XCTAssertEqual(item.id, 1)
-                XCTAssertEqual(item.key, "value")
+            Testable.retrieve(["id": "1"]).then({ (result: [Testable]) in
+                XCTAssertEqual(result[0].id, 1)
+                XCTAssertEqual(result[0].key, "value")
                 
                 te.fulfill()
             })
@@ -92,10 +87,8 @@ class RestfulModelTests: JZTestCase {
             model.key = "value"
             
             Testable.create(model).then({ result in
-                guard let testable = result as? Testable else {return}
-                
-                XCTAssertEqual(testable.id, model.id)
-                XCTAssertEqual(testable.key, model.key)
+                XCTAssertEqual(result.id, model.id)
+                XCTAssertEqual(result.key, model.key)
                 
                 te.fulfill()
             })
@@ -112,16 +105,12 @@ class RestfulModelTests: JZTestCase {
             .withBody("{\"key\":\"new value\", \"id\": 1}")
         
         expect { te in
-            Testable.retrieve("1").then({ (result) -> Promise<RestfulModel> in
-                guard let testable = result as? Testable else {return Promise.fulfill(result)}
+            Testable.retrieve("1").then({ (result: Testable) -> Promise<Testable> in
+                result.key = "new value"
                 
-                testable.key = "new value"
-                
-                return testable.update()
-            }).then({ (result) -> Void in
-                guard let testable = result as? Testable else {return}
-                
-                XCTAssertEqual(testable.key, "new value")
+                return result.update()
+            }).then({ result in
+                XCTAssertEqual(result.key, "new value")
                 te.fulfill()
             })
         }
