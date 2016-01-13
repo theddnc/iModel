@@ -4,7 +4,7 @@
 [![CocoaPods](https://img.shields.io/cocoapods/v/iModel.svg)](https://cocoapods.org/pods/iModel)
 [![CocoaPods](https://img.shields.io/cocoapods/l/iModel.svg)](https://cocoapods.org/pods/iModel)
 [![CocoaPods](https://img.shields.io/cocoapods/p/iModel.svg)](https://cocoapods.org/pods/iModel)
-[![CocoaPods](https://img.shields.io/cocoapods/metrics/doc-percent/iModel.svg)](http://cocoadocs.org/docsets/iModel/0.0.4/)
+[![CocoaPods](https://img.shields.io/cocoapods/metrics/doc-percent/iModel.svg)](http://cocoadocs.org/docsets/iModel/0.0.5/)
 
 Validation, JSON parsing and async remote communication in one bundle.
 
@@ -262,7 +262,9 @@ For more information about these methods, visit the documentation.
 
 ## Documentation
 
-Documentation should be available [here](http://cocoadocs.org/docsets/iModel/0.0.4/)
+Documentation should be available [here](http://cocoadocs.org/docsets/iModel/0.0.5/), although there seems to be an issue 
+with the lib that cocoapods use to generate docs from code. For now just read the comments - it will also help you to better
+understand the lib and possibly find some issues with it!  
 
 ## Licence
 

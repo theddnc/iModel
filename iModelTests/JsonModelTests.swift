@@ -40,6 +40,7 @@ class JsonModelTests: JZTestCase {
             dynamic var nullable: String?
             dynamic var floatingPoint: Float = 0.0
             dynamic var nested: NestedTestable?
+            dynamic var lastOne: Int = 0
             
             override class func jsonPropertyExclusions() -> [String] {
                 return ["ignore_me"]
@@ -62,7 +63,8 @@ class JsonModelTests: JZTestCase {
                 "\"nested\": {" +
                     "\"id\": 101," +
                     "\"name\": \"string2\"" +
-                "}" +
+                "}," +
+                "\"last_one\": 69" +
             "}")
         
         let instance = try! Testable(data: nsData)
@@ -73,6 +75,7 @@ class JsonModelTests: JZTestCase {
         XCTAssertEqual(instance.nested?.id, 101)
         XCTAssertEqual(instance.nested?.name, "string2")
         XCTAssertEqual(instance.nullable, nil)
+        XCTAssertEqual(instance.lastOne, 69)
         
         let dict = instance.toJsonDictionary()
         XCTAssertEqual((dict["nested"] as? [String:AnyObject])?["id"] as? Int, 101)

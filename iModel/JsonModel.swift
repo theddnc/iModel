@@ -269,6 +269,13 @@ public class JsonModel: Model {
             do {
                 let parsedValue = try parsingMethod(value)
                 self.setValue(parsedValue, forKey: propertyName)
+                
+                // todo: this is bad, but does the job...
+                //
+                // overwriting class children when parsing nested model happens on JsonModel level,
+                // not on subclass level. better solution: delegating a class to contain property
+                // lists for each of the subclasses
+                self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
             }
             catch _ as JsonModelError {
                 throw JsonModelError.ParsingError(key, value)
