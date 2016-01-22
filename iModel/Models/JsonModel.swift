@@ -77,6 +77,8 @@ public class JsonModel: Model {
     required public init(var jsonDict: [String: AnyObject]) throws {
         super.init()
         
+        // to jest przechujowe, może wołać funkcje za każdym razem?
+        // niewiele się tutaj oszczędza, choociaż z drugiej strony...
         self.dynamicType.propertyExclusions = self.dynamicType.jsonPropertyExclusions()
         self.dynamicType.propertyNames = self.dynamicType.jsonPropertyNames()
         self.dynamicType.propertyParsingMethods = self.dynamicType.jsonPropertyParsingMethods()
@@ -262,7 +264,7 @@ public class JsonModel: Model {
      - throws ```JsonModelError.ParsingError(key, value)```
     */
     private func setValue(value: AnyObject, atKey key: String, forPropertyNamed propertyName: String) throws {
-        if value is NSNull && Mirror(reflecting: self.dynamicType.classChildren![key]).displayStyle == .Optional {
+        if value is NSNull && Mirror(reflecting: self.dynamicType.classChildren[key]).displayStyle == .Optional {
             self.setValue(nil, forKey: propertyName)
         }
         else if let parsingMethod = self.dynamicType.propertyParsingMethods[key] {
@@ -270,12 +272,9 @@ public class JsonModel: Model {
                 let parsedValue = try parsingMethod(value)
                 self.setValue(parsedValue, forKey: propertyName)
                 
-                // todo: this is bad, but does the job...
-                //
-                // overwriting class children when parsing nested model happens on JsonModel level,
-                // not on subclass level. better solution: delegating a class to contain property
-                // lists for each of the subclasses
-                self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
+                // in case of parsing another JsonModel before we need to reset our property
+                // container
+                self.dynamicType.propertyContainer = PropertyContainer.get(self)
             }
             catch _ as JsonModelError {
                 throw JsonModelError.ParsingError(key, value)

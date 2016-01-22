@@ -66,6 +66,12 @@ class JsonModelTests: JZTestCase {
                 "}," +
                 "\"last_one\": 69" +
             "}")
+    
+        measureBlock {
+            for _ in 1...100 {
+                let _ = try! Testable(data: nsData)
+            }
+        }
         
         let instance = try! Testable(data: nsData)
         

@@ -67,18 +67,20 @@ public class Model: NSObject {
         case Invalid
     }
     
+    /// will contain this class property container
+    internal static var propertyContainer: PropertyContainer?
+    
     /// will contain a reflected dictionary of class children after running first init
-    internal static var classChildren: [String: Mirror.Child]?
+    internal static var classChildren: [String: Mirror.Child] {
+        get {
+            return self.propertyContainer?.classChildren ?? [:]
+        }
+    }
     
     /// contains a list of class children
     internal static var classProperties: [String] {
         get {
-            if self.classChildren != nil {
-                return Array(self.classChildren!.keys)
-            }
-            else {
-                return []
-            }
+            return self.propertyContainer?.classProperties ?? []
         }
     }
     
@@ -118,10 +120,10 @@ public class Model: NSObject {
         super.init()
         
         // set up a mirror
-        self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
+        self.dynamicType.propertyContainer = PropertyContainer.get(self)
         
         // create KVO for fields
-        for child in self.dynamicType.classChildren!.values {
+        for child in self.dynamicType.classChildren.values {
             guard let label = child.label else { continue }
             self.addObserver(self, forKeyPath: label, options: NSKeyValueObservingOptions([.New, .Old]), context: nil)
         }
@@ -131,10 +133,10 @@ public class Model: NSObject {
     deinit {
         
         // set up a mirror
-        self.dynamicType.classChildren = Utils.dictionaryFromMirror(Mirror(reflecting: self))
+        self.dynamicType.propertyContainer = PropertyContainer.get(self)
         
         // remove KVO for fields
-        for child in self.dynamicType.classChildren!.values {
+        for child in self.dynamicType.classChildren.values{
             guard let label = child.label else { continue }
             self.removeObserver(self, forKeyPath: label)
         }
